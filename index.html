@@ -1,0 +1,2766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五金件模具排期管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: #ffffff;
+            color: #37352f;
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #e9e9e7;
+        }
+        
+        .btn-primary {
+            background: #37352f;
+            transition: background-color 0.15s;
+        }
+        
+        .btn-primary:hover {
+            background: #24231f;
+        }
+        
+        .progress-bar {
+            background: #e8e8e8;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: #706d65;
+            transition: width 0.5s ease;
+        }
+        
+        .alert-error {
+            background: #fff1f0;
+            border-left: 4px solid #ff4d4f;
+        }
+        
+        .alert-warning {
+            background: #fffbe6;
+            border-left: 4px solid #faad14;
+        }
+        
+        .table-row:hover {
+            background: #f8fafc;
+        }
+        
+        .tag {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* 优化日期输入框样式 */
+        input[type="date"] {
+            position: relative;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+        
+        .date-input {
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .workspace {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .workspace-sidebar {
+            background: #f7f7f5;
+            border-right: 1px solid #e9e9e7;
+            flex: 0 0 238px;
+            padding: 12px 10px;
+            transition: flex-basis 0.18s ease;
+        }
+
+        .workspace.sidebar-collapsed .workspace-sidebar {
+            flex-basis: 48px;
+            padding-left: 7px;
+            padding-right: 7px;
+        }
+
+        .workspace.sidebar-collapsed .sidebar-content,
+        .workspace.sidebar-collapsed .sidebar-brand {
+            display: none;
+        }
+
+        .workspace.sidebar-collapsed .sidebar-collapse-icon {
+            transform: rotate(180deg);
+        }
+
+        .workspace-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-wrap {
+            max-width: none;
+        }
+
+        .nav-title {
+            letter-spacing: 0;
+        }
+
+        .surface-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e9e9e7;
+        }
+
+        .section-title {
+            letter-spacing: 0;
+        }
+
+        .collection-item {
+            color: #57534c;
+            border-radius: 5px;
+        }
+
+        .collection-row:hover, .collection-row.active {
+            background: #efefed;
+            color: #37352f;
+        }
+
+        .collection-row.active {
+            font-weight: 500;
+        }
+
+        .collection-project {
+            margin-left: 25px;
+            border-left: 1px solid #deddd9;
+            padding: 2px 0 2px 9px;
+        }
+
+        .sidebar-project-link {
+            border-radius: 4px;
+            color: #57534c;
+        }
+
+        .sidebar-project-link:hover {
+            background: #efefed;
+            color: #24231f;
+        }
+
+        .sidebar-collapse-icon {
+            transition: transform 0.18s ease;
+        }
+
+        input:focus, select:focus {
+            box-shadow: 0 0 0 2px rgba(55, 53, 47, 0.12);
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                display: block;
+            }
+            .workspace-sidebar {
+                border-right: 0;
+                border-bottom: 1px solid #e9e9e7;
+                padding-bottom: 12px;
+            }
+            .workspace.sidebar-collapsed .workspace-sidebar {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .workspace.sidebar-collapsed .sidebar-content,
+            .workspace.sidebar-collapsed .sidebar-brand {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800">
+    <div class="workspace" id="workspace">
+        <aside class="workspace-sidebar">
+            <div class="flex items-center justify-between px-1 pb-5">
+                <h1 class="sidebar-brand text-sm font-semibold text-gray-800">项目排期</h1>
+                <button onclick="toggleSidebar()" class="ml-auto w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-gray-500" title="收起侧栏">
+                    <svg class="sidebar-collapse-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <div class="flex items-center justify-between px-2 mb-2">
+                    <span class="text-xs font-medium text-gray-500">项目集</span>
+                    <button onclick="showCollectionModal()" class="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-200 text-gray-500" title="新建项目集">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="collectionList" class="space-y-1"></div>
+            </div>
+        </aside>
+        <main class="workspace-main">
+            <header class="border-b border-gray-100">
+                <div class="page-wrap px-5 py-3 flex items-center justify-between gap-6">
+                    <div>
+                        <h2 id="currentCollectionTitle" class="nav-title text-lg font-semibold text-gray-900">全部项目</h2>
+                    </div>
+                    <button onclick="showCreateModal()" class="btn-primary inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-white text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path>
+                        </svg>
+                        新建项目
+                    </button>
+                </div>
+            </header>
+
+    <!-- 通知容器 -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <div class="page-wrap px-5 py-3">
+        <!-- 视图切换标签 -->
+        <div class="mb-3 flex items-center justify-between gap-4">
+            <div class="inline-flex bg-white rounded-md p-1 border border-gray-200">
+                <button onclick="switchView('list')" id="tab-list" class="px-3 py-1.5 rounded text-sm font-medium transition-all bg-gray-900 text-white">
+                    <span class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                        </svg>
+                        <span>项目列表</span>
+                    </span>
+                </button>
+                <button onclick="switchView('calendar')" id="tab-calendar" class="px-3 py-1.5 rounded text-sm font-medium transition-all text-gray-600 hover:bg-gray-100">
+                    <span class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>日历视图</span>
+                    </span>
+                </button>
+                <button onclick="switchView('issues')" id="tab-issues" class="px-3 py-1.5 rounded text-sm font-medium transition-all text-gray-600 hover:bg-gray-100">
+                    <span class="flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11h6m-6 4h4m-6 6h10a2 2 0 002-2V7l-4-4H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>问题点清单</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 当前项目集概览 -->
+        <div id="scheduleOverview">
+        <div class="flex flex-wrap gap-x-8 gap-y-2 border-b border-gray-100 pb-3 mb-3">
+            <div class="flex items-baseline gap-2">
+                <div class="text-xs text-gray-500">项目数</div>
+                <div class="text-lg font-medium text-gray-800" id="totalProjects">0</div>
+            </div>
+            
+            <div class="flex items-baseline gap-2">
+                <div class="text-xs text-gray-500">进行中</div>
+                <div class="text-lg font-medium text-gray-800" id="activeProjects">0</div>
+            </div>
+            
+            <div class="flex items-baseline gap-2">
+                <div class="text-xs text-gray-500">延期节点</div>
+                <div class="text-lg font-medium text-gray-800" id="delayedAlerts">0</div>
+            </div>
+            
+            <div class="flex items-baseline gap-2">
+                <div class="text-xs text-gray-500">今日任务</div>
+                <div class="text-lg font-medium text-gray-800" id="todayTasks">0</div>
+            </div>
+        </div>
+
+        <!-- 预警信息 -->
+        <div id="alertsContainer" class="mb-3 space-y-2 hidden"></div>
+        </div>
+
+        <!-- 项目列表视图 -->
+        <div id="view-list" class="card overflow-hidden">
+            <div class="surface-header px-4 py-2.5 flex items-center justify-between gap-4">
+                <h2 class="section-title text-sm font-medium text-gray-700">项目</h2>
+                <input type="text" id="searchInput" placeholder="搜索项目名称或客户" 
+                       class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                       oninput="filterProjects()">
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">项目名称</th>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">项目集</th>
+                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">工艺 / 数量</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">启动时间</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">T0试模</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">PPAP</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">进度</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">状态</th>
+                            <th class="px-3 py-2 text-center text-xs font-semibold text-gray-500 uppercase">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200" id="projectTableBody">
+                        <!-- 动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="loadingState" class="px-6 py-12 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-500">加载中...</p>
+            </div>
+
+            <div id="emptyState" class="hidden px-6 py-12 text-center">
+                <p class="text-gray-500">暂无项目数据</p>
+                <button onclick="showCreateModal()" class="mt-4 btn-primary px-6 py-2 rounded text-white">
+                    创建第一个项目
+                </button>
+            </div>
+        </div>
+
+        <!-- 问题点清单视图 -->
+        <div id="view-issues" class="hidden">
+            <div class="border border-gray-200 rounded-md overflow-hidden bg-white">
+                <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-baseline gap-4">
+                        <h2 class="text-sm font-semibold text-gray-900">问题点清单</h2>
+                        <span class="text-xs text-gray-500"><span id="issueVisibleCount">0</span> 项</span>
+                        <span class="text-xs text-red-600">高风险 <span id="issueHighRiskCount">0</span></span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button id="copyIssuesButton" onclick="copyIssuesForAI()" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50 disabled:text-gray-300 disabled:hover:bg-white" title="选择一个项目后复制给 AI" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-2M16 3h5m0 0v5m0-5L10 14"></path></svg>
+                            复制给AI整理
+                        </button>
+                        <input id="issueJsonInput" type="file" accept=".json,application/json" class="hidden" onchange="importIssuesFromFile(this)">
+                        <button onclick="document.getElementById('issueJsonInput').click()" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50" title="从 JSON 恢复问题清单">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v11m0-11L8 8m4-4l4 4"></path></svg>
+                            导入 JSON
+                        </button>
+                        <button onclick="exportIssuesJSON()" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50" title="导出 JSON">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"></path></svg>
+                            JSON
+                        </button>
+                        <button onclick="exportIssuesExcel()" class="px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50" title="导出 Excel">Excel</button>
+                        <button onclick="exportIssuesTXT()" class="px-3 py-1.5 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50" title="导出 TXT">TXT</button>
+                        <button onclick="showIssueModal()" class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path></svg>
+                            新增问题
+                        </button>
+                    </div>
+                </div>
+                <div class="px-4 py-3 border-b border-gray-100 bg-gray-50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <select id="issueProjectFilter" onchange="applyIssueFilters()" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none">
+                        <option value="">全部项目</option>
+                    </select>
+                    <select id="issueDepartmentFilter" onchange="applyIssueFilters()" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none">
+                        <option value="">全部责任部门</option>
+                    </select>
+                    <select id="issueStatusFilter" onchange="applyIssueFilters()" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none">
+                        <option value="">全部状态</option>
+                        <option value="待处理">待处理</option>
+                        <option value="处理中">处理中</option>
+                        <option value="已解决">已解决</option>
+                        <option value="已关闭">已关闭</option>
+                    </select>
+                    <select id="issueRiskFilter" onchange="applyIssueFilters()" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none">
+                        <option value="">全部风险等级</option>
+                        <option value="高">高风险</option>
+                        <option value="中">中风险</option>
+                        <option value="低">低风险</option>
+                    </select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1200px]">
+                        <thead class="bg-white border-b border-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">项目名称 / 客户名称</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">问题点描述</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">责任部门</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">当前状态</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">风险等级</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">下一步动作</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">截止时间</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">备注</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="issueTableBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+                <div id="issueEmptyState" class="hidden px-6 py-12 text-center text-sm text-gray-500">暂无问题点</div>
+            </div>
+        </div>
+
+        <!-- 日历视图 -->
+        <div id="view-calendar" class="hidden">
+            <div class="card overflow-hidden">
+                <div class="surface-header px-5 py-4 flex items-center justify-between gap-4">
+                    <h2 class="section-title text-base font-semibold text-gray-900">计划日历</h2>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="changeMonth(-1)" class="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <span id="currentMonthDisplay" class="text-lg font-semibold text-gray-700 min-w-[150px] text-center"></span>
+                        <button onclick="changeMonth(1)" class="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                        <button onclick="goToToday()" class="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-gray-800 transition-colors">
+                            今天
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 星期标题 -->
+                    <div class="grid grid-cols-7 gap-2 mb-2">
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周日</div>
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周一</div>
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周二</div>
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周三</div>
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周四</div>
+                        <div class="text-center text-sm font-semibold text-gray-600 py-2">周六</div>
+                    </div>
+                    
+                    <!-- 日历网格 -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-2">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </main>
+    </div>
+
+    <!-- 项目集弹窗 -->
+    <div id="collectionModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-30 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-md w-full max-w-sm mx-4 border border-gray-200 shadow-xl">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="collectionModalTitle" class="text-sm font-medium text-gray-900">新建项目集</h3>
+                <button onclick="closeCollectionModal()" class="text-gray-400 hover:text-gray-700" title="关闭">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form onsubmit="submitCollection(event)" class="p-5">
+                <label class="block text-xs text-gray-500 mb-2">名称</label>
+                <input id="collectionNameInput" type="text" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500">
+                <div class="mt-5 flex justify-end gap-2">
+                    <button type="button" onclick="closeCollectionModal()" class="px-4 py-2 text-sm rounded hover:bg-gray-100">取消</button>
+                    <button type="submit" class="btn-primary px-4 py-2 text-sm text-white rounded">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 问题点编辑弹窗 -->
+    <div id="issueModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-30 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-md w-full max-w-3xl mx-4 border border-gray-200 shadow-xl">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 id="issueModalTitle" class="text-base font-semibold text-gray-900">新增问题</h3>
+                <button onclick="closeIssueModal()" class="text-gray-400 hover:text-gray-700" title="关闭">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="issueForm" onsubmit="submitIssue(event)" class="p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">项目名称 *</span>
+                        <select id="issueProjectSelect" required onchange="updateIssueCustomer()" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-gray-500"></select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">客户名称</span>
+                        <input id="issueCustomerName" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500">
+                    </label>
+                    <label class="md:col-span-2 block">
+                        <span class="block text-xs text-gray-500 mb-1.5">问题点描述 *</span>
+                        <textarea id="issueDescription" required rows="3" class="w-full resize-y border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500"></textarea>
+                    </label>
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">责任部门</span>
+                        <input id="issueDepartment" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500">
+                    </label>
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">截止时间</span>
+                        <input id="issueDeadline" type="date" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500">
+                    </label>
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">当前状态</span>
+                        <select id="issueStatus" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-gray-500">
+                            <option value="待处理">待处理</option>
+                            <option value="处理中">处理中</option>
+                            <option value="已解决">已解决</option>
+                            <option value="已关闭">已关闭</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="block text-xs text-gray-500 mb-1.5">风险等级</span>
+                        <select id="issueRiskLevel" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:border-gray-500">
+                            <option value="高">高</option>
+                            <option value="中" selected>中</option>
+                            <option value="低">低</option>
+                        </select>
+                    </label>
+                    <label class="md:col-span-2 block">
+                        <span class="block text-xs text-gray-500 mb-1.5">下一步动作</span>
+                        <textarea id="issueNextAction" rows="2" class="w-full resize-y border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500"></textarea>
+                    </label>
+                    <label class="md:col-span-2 block">
+                        <span class="block text-xs text-gray-500 mb-1.5">备注</span>
+                        <textarea id="issueNotes" rows="2" class="w-full resize-y border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-gray-500"></textarea>
+                    </label>
+                </div>
+                <div class="mt-5 flex justify-end gap-2">
+                    <button type="button" onclick="closeIssueModal()" class="px-4 py-2 text-sm rounded hover:bg-gray-100">取消</button>
+                    <button type="submit" class="btn-primary px-4 py-2 text-sm text-white rounded">保存问题</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 创建项目弹窗 -->
+    <div id="createModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-40 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg w-full max-w-2xl mx-4 border border-gray-200 shadow-xl">
+            <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
+                <h3 class="text-base font-semibold text-gray-900">新建项目</h3>
+                <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <form id="createForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">项目名称 *</label>
+                            <input type="text" name="name" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="例如：发动机缸体精密模具">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">工艺方式 *</label>
+                            <select name="processMode" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500 bg-white">
+                                <option value="预镀">预镀</option>
+                                <option value="料带镀">料带镀</option>
+                                <option value="后镀">后镀</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">项目集</label>
+                        <select id="createProjectCollection" name="collectionId" class="w-full border rounded px-4 py-2 focus:outline-none focus:border-gray-500 bg-white">
+                            <option value="">未分类</option>
+                        </select>
+                    </div>
+                     
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">产品数量 *</label>
+                            <input type="number" name="productQuantity" min="1" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="例如：1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">模具数量 *</label>
+                            <input type="number" name="moldQuantity" min="1" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500" placeholder="例如：2">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">启动时间 *</label>
+                            <input type="date" name="startDate" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">T0试模 *</label>
+                            <input type="date" name="t0Date" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">PPAP *</label>
+                            <input type="date" name="ppapDate" required class="w-full border rounded px-4 py-2 focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                        自动排期规则：并行设计 5 天（二冲 7 天）、模具加工 12 天、组装 4 天、电镀 7 天、每套试模 1 天；料带镀会拆分一冲、电镀、二冲。
+                    </div>
+                </form>
+            </div>
+            
+            <div class="px-6 py-4 border-t flex justify-end space-x-3">
+                <button onclick="closeCreateModal()" class="px-6 py-2 rounded border hover:bg-gray-50">取消</button>
+                <button onclick="submitCreate()" class="btn-primary px-6 py-2 rounded text-white">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 计划管理弹窗 -->
+    <div id="taskModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-40 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col border border-gray-200 shadow-xl">
+            <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        <span id="taskModalTitle">项目计划</span>
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1" id="taskModalSubtitle"></p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="openIssuesForProject(currentProjectId); closeTaskModal()" class="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium" title="查看该项目的问题点">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11h6m-6 4h4m-6 6h10a2 2 0 002-2V7l-4-4H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        问题点
+                    </button>
+                    <button onclick="regenerateProjectSchedule()" class="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-sm font-medium" title="根据启动、T0、PPAP节点和标准周期重排完整计划">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path>
+                        </svg>
+                        自动排计划
+                    </button>
+                    <button onclick="regenerateT0Plan()" class="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-medium" title="根据当前工艺与模具数量重新生成T0试模任务">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 9a8 8 0 00-14.8-3M4 15a8 8 0 0014.8 3"></path>
+                        </svg>
+                        按模具生成试模
+                    </button>
+                    <button onclick="toggleAddTaskForm()" class="btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-md text-white text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path>
+                        </svg>
+                        新增任务
+                    </button>
+                    <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md p-2 transition-colors" title="关闭">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-5 overflow-y-auto flex-1 bg-gray-50">
+                <form id="addTaskForm" class="hidden bg-white border border-gray-200 rounded-md p-4 mb-4" onsubmit="submitAddTask(event)">
+                    <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-semibold text-gray-900">新增计划任务</h4>
+                        <button type="button" onclick="toggleAddTaskForm(false)" class="text-sm text-gray-500 hover:text-gray-800">取消</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">任务名称 *</label>
+                            <input id="newTaskName" type="text" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">所属阶段 *</label>
+                            <select id="newTaskPhase" required onchange="refreshParentTaskOptions()" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500">
+                                <option value="第一阶段：立项">第一阶段：立项</option>
+                                <option value="第二阶段：设计与制作">第二阶段：设计与制作</option>
+                                <option value="第三阶段：T0/T1试模">第三阶段：T0/T1试模</option>
+                                <option value="第四阶段：正式PPAP">第四阶段：正式PPAP</option>
+                                <option value="第五阶段：量产转移">第五阶段：量产转移</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">任务层级</label>
+                            <select id="newTaskLevel" onchange="refreshParentTaskOptions()" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500">
+                                <option value="standalone">独立任务</option>
+                                <option value="parent">主任务</option>
+                                <option value="child">子任务</option>
+                            </select>
+                        </div>
+                        <div id="newTaskParentWrap" class="hidden">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">父任务 *</label>
+                            <select id="newTaskParent" onchange="handleNewTaskParentChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">插入位置 *</label>
+                            <select id="newTaskInsertAfter" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">开始日期 *</label>
+                            <input id="newTaskStartDate" type="date" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">结束日期 *</label>
+                            <input id="newTaskEndDate" type="date" required class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">备注</label>
+                            <input id="newTaskDescription" type="text" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="选填">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit" class="btn-primary px-5 py-2 rounded-md text-white text-sm font-medium">保存任务</button>
+                    </div>
+                </form>
+                <div id="taskList" class="space-y-4">
+                    <!-- 动态加载计划 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projectsData = [];
+        let collectionsData = [];
+        let issuesData = [];
+        let activeCollectionId = 'all';
+        let editingCollectionId = null;
+        let editingIssueId = null;
+        let editingIssueProjectId = null;
+        let activeView = 'list';
+        let currentCalendarDate = new Date(); // 日历当前显示的日期
+        let overdueTasksCollapsed = true;
+        let todayTasksCollapsed = true;
+        let currentTasksData = [];
+        let currentProjectId = null;
+        let currentProjectData = null;
+        const deletingProjectIds = new Set();
+        const expandedTaskIds = new Set();
+        const expandedCollectionIds = new Set(['all']);
+
+        // 切换视图
+        function switchView(view) {
+            const listView = document.getElementById('view-list');
+            const calendarView = document.getElementById('view-calendar');
+            const issuesView = document.getElementById('view-issues');
+            const overview = document.getElementById('scheduleOverview');
+            const tabList = document.getElementById('tab-list');
+            const tabCalendar = document.getElementById('tab-calendar');
+            const tabIssues = document.getElementById('tab-issues');
+            const inactiveClass = 'px-3 py-1.5 rounded text-sm font-medium transition-all text-gray-600 hover:bg-gray-100';
+            const activeClass = 'px-3 py-1.5 rounded text-sm font-medium transition-all bg-gray-900 text-white';
+            
+            if (view === 'list') {
+                listView.classList.remove('hidden');
+                calendarView.classList.add('hidden');
+                issuesView.classList.add('hidden');
+                overview.classList.remove('hidden');
+                tabList.className = activeClass;
+                tabCalendar.className = inactiveClass;
+                tabIssues.className = inactiveClass;
+            } else if (view === 'calendar') {
+                listView.classList.add('hidden');
+                calendarView.classList.remove('hidden');
+                issuesView.classList.add('hidden');
+                overview.classList.remove('hidden');
+                tabList.className = inactiveClass;
+                tabCalendar.className = activeClass;
+                tabIssues.className = inactiveClass;
+                
+                // 渲染日历
+                renderCalendar();
+            } else if (view === 'issues') {
+                listView.classList.add('hidden');
+                calendarView.classList.add('hidden');
+                issuesView.classList.remove('hidden');
+                overview.classList.add('hidden');
+                tabList.className = inactiveClass;
+                tabCalendar.className = inactiveClass;
+                tabIssues.className = activeClass;
+                applyIssueFilters();
+            }
+            activeView = view;
+            history.replaceState(null, '', `${location.pathname}${location.search}#${view}`);
+        }
+
+        async function loadWorkspaceData() {
+            try {
+                const [projectResponse, collectionResponse, issueResponse] = await Promise.all([
+                    fetch('/api/projects'),
+                    fetch('/api/collections'),
+                    fetch('/api/issues')
+                ]);
+                const projectsResult = await projectResponse.json();
+                const collectionsResult = await collectionResponse.json();
+                const issuesResult = await issueResponse.json();
+                if (projectsResult.success && collectionsResult.success && issuesResult.success) {
+                    projectsData = projectsResult.data;
+                    collectionsData = collectionsResult.data;
+                    issuesData = issuesResult.data;
+                    renderCollections();
+                    populateCollectionSelect();
+                    populateIssueControls();
+                    applyProjectFilters();
+                    applyIssueFilters();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadProjects() {
+            return loadWorkspaceData();
+        }
+
+        function collectionName(collectionId) {
+            const collection = collectionsData.find(item => item.id === collectionId);
+            return collection ? collection.name : '未分类';
+        }
+
+        function visibleProjects() {
+            if (activeCollectionId === 'all') return projectsData;
+            if (activeCollectionId === 'unassigned') return projectsData.filter(project => !project.collectionId);
+            return projectsData.filter(project => project.collectionId === activeCollectionId);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('workspace').classList.toggle('sidebar-collapsed');
+        }
+
+        function collectionProjects(collectionId) {
+            if (collectionId === 'all') return projectsData;
+            if (collectionId === 'unassigned') return projectsData.filter(project => !project.collectionId);
+            return projectsData.filter(project => project.collectionId === collectionId);
+        }
+
+        function toggleCollection(collectionId) {
+            if (expandedCollectionIds.has(collectionId)) {
+                expandedCollectionIds.delete(collectionId);
+            } else {
+                expandedCollectionIds.add(collectionId);
+            }
+            renderCollections();
+        }
+
+        function renderCollections() {
+            const container = document.getElementById('collectionList');
+            const unassignedCount = projectsData.filter(project => !project.collectionId).length;
+            const rows = [
+                { id: 'all', name: '全部项目', count: projectsData.length },
+                { id: 'unassigned', name: '未分类', count: unassignedCount }
+            ].concat(collectionsData.map(collection => ({
+                ...collection,
+                count: projectsData.filter(project => project.collectionId === collection.id).length
+            })));
+            container.innerHTML = rows.map(item => {
+                const children = collectionProjects(item.id);
+                const expanded = expandedCollectionIds.has(item.id);
+                return `
+                <div class="collection-item">
+                    <div class="collection-row ${activeCollectionId === item.id ? 'active' : ''} group flex items-center gap-0.5 rounded">
+                        <button onclick="toggleCollection('${item.id}')" class="w-7 h-8 shrink-0 flex items-center justify-center text-gray-400 hover:text-gray-700" title="${expanded ? '收起' : '展开'}">
+                            <svg class="w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                        <button onclick="selectCollection('${item.id}')" class="min-w-0 flex-1 flex items-center justify-between pr-2 py-1.5 text-sm text-left">
+                            <span class="truncate">${escapeHtml(item.name)}</span>
+                            <span class="text-xs text-gray-400 ml-2">${item.count}</span>
+                        </button>
+                        ${item.id !== 'all' && item.id !== 'unassigned' ? `
+                            <button onclick="renameCollection('${item.id}')" class="hidden group-hover:flex w-6 h-8 items-center justify-center text-gray-400 hover:text-gray-700" title="重命名">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l2.651 2.651M7 17l-1 4 4-1L19.513 10.487a1.875 1.875 0 10-2.651-2.651L7 17z"></path></svg>
+                            </button>
+                            <button onclick="deleteCollection('${item.id}')" class="hidden group-hover:flex w-6 h-8 items-center justify-center text-gray-400 hover:text-red-600" title="删除">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${expanded ? `
+                        <div class="collection-project space-y-0.5">
+                            ${children.length ? children.map(project => `
+                                <div class="group flex items-center gap-0.5">
+                                    <button onclick="viewTasks(${project.id})" class="sidebar-project-link min-w-0 flex-1 text-left px-2 py-1.5 text-sm truncate" title="${escapeHtml(project.name)}">
+                                        ${escapeHtml(project.name)}
+                                    </button>
+                                    <button onclick="event.stopPropagation(); deleteProject(${project.id})" class="hidden group-hover:flex w-7 h-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors" title="删除项目">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            `).join('') : '<div class="px-2 py-1.5 text-xs text-gray-400">暂无项目</div>'}
+                        </div>
+                    ` : ''}
+                </div>
+            `;}).join('');
+        }
+
+        function populateCollectionSelect() {
+            const select = document.getElementById('createProjectCollection');
+            const preferred = activeCollectionId !== 'all' && activeCollectionId !== 'unassigned' ? activeCollectionId : '';
+            select.innerHTML = '<option value="">未分类</option>' + collectionsData.map(collection =>
+                `<option value="${collection.id}">${escapeHtml(collection.name)}</option>`
+            ).join('');
+            select.value = preferred;
+        }
+
+        function selectCollection(collectionId) {
+            activeCollectionId = collectionId;
+            expandedCollectionIds.add(collectionId);
+            const title = collectionId === 'all' ? '全部项目' :
+                collectionId === 'unassigned' ? '未分类' : collectionName(collectionId);
+            document.getElementById('currentCollectionTitle').textContent = title;
+            renderCollections();
+            populateCollectionSelect();
+            applyProjectFilters();
+        }
+
+        function applyProjectFilters() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = visibleProjects().filter(project =>
+                project.name.toLowerCase().includes(term) ||
+                (project.customer && project.customer.toLowerCase().includes(term))
+            );
+            displayProjects(filtered);
+            updateStatistics(filtered);
+            if (!document.getElementById('view-calendar').classList.contains('hidden')) renderCalendar();
+        }
+
+        function populateIssueControls() {
+            const projectFilter = document.getElementById('issueProjectFilter');
+            const projectSelect = document.getElementById('issueProjectSelect');
+            const departmentFilter = document.getElementById('issueDepartmentFilter');
+            const projectFilterValue = projectFilter.value;
+            const projectSelectValue = projectSelect.value;
+            const departmentValue = departmentFilter.value;
+            const projectOptions = projectsData.map(project =>
+                `<option value="${project.id}">${escapeHtml(project.name)}</option>`
+            ).join('');
+            projectFilter.innerHTML = '<option value="">全部项目</option>' + projectOptions;
+            projectSelect.innerHTML = '<option value="">请选择项目</option>' + projectOptions;
+            if ([...projectFilter.options].some(option => option.value === projectFilterValue)) {
+                projectFilter.value = projectFilterValue;
+            }
+            if ([...projectSelect.options].some(option => option.value === projectSelectValue)) {
+                projectSelect.value = projectSelectValue;
+            }
+            const departments = [...new Set(issuesData.map(issue => issue.department).filter(Boolean))].sort();
+            departmentFilter.innerHTML = '<option value="">全部责任部门</option>' + departments.map(department =>
+                `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`
+            ).join('');
+            if (departments.includes(departmentValue)) departmentFilter.value = departmentValue;
+        }
+
+        function filteredIssues() {
+            const projectId = document.getElementById('issueProjectFilter').value;
+            const department = document.getElementById('issueDepartmentFilter').value;
+            const status = document.getElementById('issueStatusFilter').value;
+            const riskLevel = document.getElementById('issueRiskFilter').value;
+            return issuesData.filter(issue =>
+                (!projectId || String(issue.projectId) === projectId) &&
+                (!department || issue.department === department) &&
+                (!status || issue.status === status) &&
+                (!riskLevel || issue.riskLevel === riskLevel)
+            );
+        }
+
+        function getIssueStatusColor(status) {
+            const colors = {
+                '待处理': 'bg-amber-100 text-amber-700',
+                '处理中': 'bg-blue-100 text-blue-700',
+                '已解决': 'bg-green-100 text-green-700',
+                '已关闭': 'bg-gray-100 text-gray-600'
+            };
+            return colors[status] || colors['待处理'];
+        }
+
+        function getIssueRiskColor(riskLevel) {
+            const colors = {
+                '高': 'bg-red-100 text-red-700',
+                '中': 'bg-amber-100 text-amber-700',
+                '低': 'bg-green-100 text-green-700'
+            };
+            return colors[riskLevel] || colors['中'];
+        }
+
+        function applyIssueFilters() {
+            const tableBody = document.getElementById('issueTableBody');
+            const emptyState = document.getElementById('issueEmptyState');
+            const issues = filteredIssues();
+            document.getElementById('issueVisibleCount').textContent = issues.length;
+            document.getElementById('issueHighRiskCount').textContent =
+                issues.filter(issue => issue.riskLevel === '高' && issue.status !== '已关闭').length;
+            const selectedProject = document.getElementById('issueProjectFilter').value;
+            const aiButton = document.getElementById('copyIssuesButton');
+            aiButton.disabled = !selectedProject;
+            tableBody.innerHTML = issues.map(issue => `
+                <tr class="hover:bg-gray-50 align-top">
+                    <td class="px-3 py-3 min-w-[150px]">
+                        <div class="text-sm font-medium text-gray-900">${escapeHtml(issue.projectName)}</div>
+                        <div class="text-xs text-gray-500 mt-1">${escapeHtml(issue.customerName || '-')}</div>
+                    </td>
+                    <td class="px-3 py-3 min-w-[220px] text-sm text-gray-800 whitespace-pre-wrap">${escapeHtml(issue.description)}</td>
+                    <td class="px-3 py-3 min-w-[100px] text-sm text-gray-700">${escapeHtml(issue.department || '-')}</td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 rounded text-xs font-medium ${getIssueStatusColor(issue.status)}">${escapeHtml(issue.status)}</span>
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <span class="inline-flex px-2 py-1 rounded text-xs font-medium ${getIssueRiskColor(issue.riskLevel)}">${escapeHtml(issue.riskLevel)}</span>
+                    </td>
+                    <td class="px-3 py-3 min-w-[200px] text-sm text-gray-700 whitespace-pre-wrap">${escapeHtml(issue.nextAction || '-')}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-700">${escapeHtml(issue.deadline || '-')}</td>
+                    <td class="px-3 py-3 min-w-[150px] text-sm text-gray-500 whitespace-pre-wrap">${escapeHtml(issue.notes || '-')}</td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <div class="flex justify-center gap-1">
+                            <button onclick="showIssueModal('${issue.id}')" class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="编辑问题">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l2.651 2.651M7 17l-1 4 4-1L19.513 10.487a1.875 1.875 0 10-2.651-2.651L7 17z"></path></svg>
+                            </button>
+                            <button onclick="deleteIssue(${issue.projectId}, '${issue.id}')" class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-red-600 hover:bg-red-50" title="删除问题">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            emptyState.classList.toggle('hidden', issues.length !== 0);
+        }
+
+        function openIssuesForProject(projectId) {
+            document.getElementById('issueProjectFilter').value = String(projectId);
+            switchView('issues');
+            applyIssueFilters();
+        }
+
+        function updateIssueCustomer() {
+            const projectId = Number(document.getElementById('issueProjectSelect').value);
+            const project = projectsData.find(item => item.id === projectId);
+            const input = document.getElementById('issueCustomerName');
+            if (!editingIssueId || !input.value) input.value = project ? project.customer || '' : '';
+        }
+
+        function showIssueModal(issueId = null, preferredProjectId = '') {
+            if (!projectsData.length) {
+                showNotification('请先创建项目', 'info');
+                return;
+            }
+            editingIssueId = issueId;
+            const issue = issuesData.find(item => item.id === issueId);
+            editingIssueProjectId = (issue && issue.projectId) || Number(preferredProjectId || document.getElementById('issueProjectFilter').value || projectsData[0].id);
+            document.getElementById('issueModalTitle').textContent = issue ? '编辑问题' : '新增问题';
+            const projectSelect = document.getElementById('issueProjectSelect');
+            projectSelect.value = String(editingIssueProjectId);
+            projectSelect.disabled = Boolean(issue);
+            document.getElementById('issueCustomerName').value = issue ? issue.customerName || '' : '';
+            document.getElementById('issueDescription').value = issue ? issue.description || '' : '';
+            document.getElementById('issueDepartment').value = issue ? issue.department || '' : '';
+            document.getElementById('issueStatus').value = issue ? issue.status || '待处理' : '待处理';
+            document.getElementById('issueRiskLevel').value = issue ? issue.riskLevel || '中' : '中';
+            document.getElementById('issueNextAction').value = issue ? issue.nextAction || '' : '';
+            document.getElementById('issueDeadline').value = issue ? issue.deadline || '' : '';
+            document.getElementById('issueNotes').value = issue ? issue.notes || '' : '';
+            updateIssueCustomer();
+            document.getElementById('issueModal').classList.remove('hidden');
+            document.getElementById('issueDescription').focus();
+        }
+
+        function closeIssueModal() {
+            editingIssueId = null;
+            editingIssueProjectId = null;
+            document.getElementById('issueProjectSelect').disabled = false;
+            document.getElementById('issueModal').classList.add('hidden');
+            document.getElementById('issueForm').reset();
+        }
+
+        async function submitIssue(event) {
+            event.preventDefault();
+            const projectId = editingIssueProjectId || Number(document.getElementById('issueProjectSelect').value);
+            const payload = {
+                customerName: document.getElementById('issueCustomerName').value.trim(),
+                description: document.getElementById('issueDescription').value.trim(),
+                department: document.getElementById('issueDepartment').value.trim(),
+                status: document.getElementById('issueStatus').value,
+                riskLevel: document.getElementById('issueRiskLevel').value,
+                nextAction: document.getElementById('issueNextAction').value.trim(),
+                deadline: document.getElementById('issueDeadline').value,
+                notes: document.getElementById('issueNotes').value.trim()
+            };
+            const url = editingIssueId
+                ? `/api/projects/${projectId}/issues/${editingIssueId}`
+                : `/api/projects/${projectId}/issues`;
+            const response = await fetch(url, {
+                method: editingIssueId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!result.success) {
+                showNotification(result.message || '保存失败', 'error');
+                return;
+            }
+            closeIssueModal();
+            await loadWorkspaceData();
+            document.getElementById('issueProjectFilter').value = String(projectId);
+            switchView('issues');
+            showNotification(result.message, 'success');
+        }
+
+        async function deleteIssue(projectId, issueId) {
+            if (!confirm('确定删除这个问题点吗？')) return;
+            const response = await fetch(`/api/projects/${projectId}/issues/${issueId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!result.success) {
+                showNotification(result.message || '删除失败', 'error');
+                return;
+            }
+            await loadWorkspaceData();
+            showNotification('问题已删除', 'success');
+        }
+
+        function issueExportRows() {
+            return issuesData.map(issue => ({
+                projectId: issue.projectId,
+                projectName: issue.projectName,
+                customerName: issue.customerName,
+                description: issue.description,
+                department: issue.department,
+                status: issue.status,
+                riskLevel: issue.riskLevel,
+                nextAction: issue.nextAction,
+                deadline: issue.deadline,
+                notes: issue.notes,
+                id: issue.id,
+                createdAt: issue.createdAt,
+                updatedAt: issue.updatedAt
+            }));
+        }
+
+        function downloadIssueFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function exportIssuesJSON() {
+            const data = {
+                format: 'project-issues-v1',
+                exportedAt: new Date().toISOString(),
+                issues: issueExportRows()
+            };
+            downloadIssueFile(JSON.stringify(data, null, 2), '问题点清单.json', 'application/json;charset=utf-8');
+        }
+
+        function exportIssuesTXT() {
+            const lines = issueExportRows().map((issue, index) => [
+                `${index + 1}. [${issue.riskLevel}风险/${issue.status}] ${issue.projectName} - ${issue.description}`,
+                `客户名称: ${issue.customerName || '-'} | 责任部门: ${issue.department || '-'} | 截止时间: ${issue.deadline || '-'}`,
+                `下一步动作: ${issue.nextAction || '-'}`,
+                `备注: ${issue.notes || '-'}`,
+                ''
+            ].join('\n'));
+            downloadIssueFile('\ufeff' + lines.join('\n'), '问题点清单.txt', 'text/plain;charset=utf-8');
+        }
+
+        function exportIssuesExcel() {
+            const headers = ['项目名称', '客户名称', '问题点描述', '责任部门', '当前状态', '风险等级', '下一步动作', '截止时间', '备注'];
+            const fields = ['projectName', 'customerName', 'description', 'department', 'status', 'riskLevel', 'nextAction', 'deadline', 'notes'];
+            const rows = issueExportRows().map(issue =>
+                `<tr>${fields.map(field => `<td>${escapeHtml(issue[field] || '')}</td>`).join('')}</tr>`
+            ).join('');
+            const html = `<html><head><meta charset="UTF-8"></head><body><table border="1"><tr>${headers.map(header => `<th>${header}</th>`).join('')}</tr>${rows}</table></body></html>`;
+            downloadIssueFile('\ufeff' + html, '问题点清单.xls', 'application/vnd.ms-excel;charset=utf-8');
+        }
+
+        async function importIssuesFromFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const parsed = JSON.parse(await file.text());
+                if (!confirm('导入将替换当前所有项目的问题点清单，确定继续吗？')) return;
+                const response = await fetch('/api/issues/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parsed)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '导入失败', 'error');
+                    return;
+                }
+                await loadWorkspaceData();
+                switchView('issues');
+                showNotification(`已导入 ${result.importedCount} 条问题`, 'success');
+            } catch (error) {
+                showNotification('JSON 文件格式不正确', 'error');
+            } finally {
+                input.value = '';
+            }
+        }
+
+        async function copyIssuesForAI() {
+            const projectId = Number(document.getElementById('issueProjectFilter').value);
+            const project = projectsData.find(item => item.id === projectId);
+            if (!project) return;
+            const issues = issuesData.filter(issue => issue.projectId === projectId);
+            const entries = issues.length ? issues.map((issue, index) =>
+                `${index + 1}. 问题点：${issue.description}\n责任部门：${issue.department || '-'}；状态：${issue.status}；风险等级：${issue.riskLevel}；截止时间：${issue.deadline || '-'}\n下一步动作：${issue.nextAction || '-'}\n备注：${issue.notes || '-'}`
+            ).join('\n\n') : '当前没有登记的问题点。';
+            const prompt = `请帮我整理以下项目的问题点，按风险优先级输出：重点风险、建议行动、需要跟进的责任部门和日期，并给出适合在会议中汇报的简短总结。\n\n项目名称：${project.name}\n客户名称：${project.customer || '-'}\n\n${entries}`;
+            try {
+                await navigator.clipboard.writeText(prompt);
+            } catch (error) {
+                const helper = document.createElement('textarea');
+                helper.value = prompt;
+                document.body.appendChild(helper);
+                helper.select();
+                document.execCommand('copy');
+                helper.remove();
+            }
+            showNotification('已复制当前项目的问题整理文本', 'success');
+        }
+
+        function showCollectionModal(collectionId = null) {
+            editingCollectionId = collectionId;
+            const collection = collectionsData.find(item => item.id === collectionId);
+            document.getElementById('collectionModalTitle').textContent = collection ? '重命名项目集' : '新建项目集';
+            document.getElementById('collectionNameInput').value = collection ? collection.name || '' : '';
+            document.getElementById('collectionModal').classList.remove('hidden');
+            document.getElementById('collectionNameInput').focus();
+        }
+
+        function closeCollectionModal() {
+            editingCollectionId = null;
+            document.getElementById('collectionModal').classList.add('hidden');
+        }
+
+        async function submitCollection(event) {
+            event.preventDefault();
+            const name = document.getElementById('collectionNameInput').value.trim();
+            if (!name) return;
+            const url = editingCollectionId ? `/api/collections/${editingCollectionId}` : '/api/collections';
+            const method = editingCollectionId ? 'PUT' : 'POST';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const result = await response.json();
+            if (!result.success) {
+                showNotification(result.message || '保存失败', 'error');
+                return;
+            }
+            activeCollectionId = result.data.id;
+            expandedCollectionIds.add(activeCollectionId);
+            closeCollectionModal();
+            await loadWorkspaceData();
+            selectCollection(activeCollectionId);
+            showNotification(method === 'POST' ? '项目集已创建' : '项目集名称已更新', 'success');
+        }
+
+        function renameCollection(collectionId) {
+            showCollectionModal(collectionId);
+        }
+
+        async function deleteCollection(collectionId) {
+            const collection = collectionsData.find(item => item.id === collectionId);
+            if (!collection || !confirm(`确定删除项目集“${collection.name}”吗？其中项目会移至未分类。`)) return;
+            const response = await fetch(`/api/collections/${collectionId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                expandedCollectionIds.delete(collectionId);
+                expandedCollectionIds.add('unassigned');
+                activeCollectionId = 'unassigned';
+                await loadWorkspaceData();
+                selectCollection('unassigned');
+                showNotification('项目集已删除', 'success');
+            } else {
+                showNotification(result.message || '删除失败', 'error');
+            }
+        }
+
+        async function moveProjectToCollection(projectId, collectionId) {
+            const response = await fetch(`/api/projects/${projectId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ collectionId })
+            });
+            const result = await response.json();
+            if (result.success) {
+                await loadWorkspaceData();
+                showNotification('项目集已更新', 'success');
+            } else {
+                showNotification(result.message || '移动失败', 'error');
+            }
+        }
+
+        // 显示项目列表
+        function displayProjects(projects) {
+            const tableBody = document.getElementById('projectTableBody');
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingState.classList.add('hidden');
+            tableBody.innerHTML = '';
+
+            if (projects.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            projects.forEach(project => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors duration-150 cursor-pointer';
+                row.onclick = () => viewTasks(project.id);
+                
+                const hasError = project.hasError || false;
+                const hasWarning = project.hasWarning || false;
+                
+                let riskBadge = '';
+                if (hasError) riskBadge = '<span class="inline-flex items-center shrink-0 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium mr-2" title="项目存在延期节点">延期</span>';
+                else if (hasWarning) riskBadge = '<span class="inline-flex items-center shrink-0 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium mr-2" title="节点即将到期">临期</span>';
+
+                row.innerHTML = `
+                    <td class="px-3 py-2">
+                        <div class="flex items-start space-x-2">
+                            ${riskBadge}
+                            <div class="min-w-0 flex-1">
+                                <div class="font-semibold text-gray-800 truncate" title="${project.name}">${project.name}</div>
+                                ${project.drawingNumber ? `<span class="text-xs text-gray-500 ml-2 font-mono">${project.drawingNumber}</span>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2">
+                        <select onclick="event.stopPropagation()" onchange="event.stopPropagation(); moveProjectToCollection(${project.id}, this.value)"
+                                class="w-28 text-sm bg-transparent border border-transparent hover:border-gray-200 rounded px-1.5 py-1 focus:outline-none">
+                            <option value="" ${!project.collectionId ? 'selected' : ''}>未分类</option>
+                            ${collectionsData.map(collection => `<option value="${collection.id}" ${project.collectionId === collection.id ? 'selected' : ''}>${escapeHtml(collection.name)}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <div class="inline-flex items-center gap-2 text-xs">
+                            <span class="text-gray-700 font-medium">${project.processMode || '后镀'}</span>
+                            <span class="text-gray-400">|</span>
+                            <span class="text-gray-500">产品 ${project.productQuantity || '-'}</span>
+                            <span class="text-gray-500">模具 ${project.moldQuantity || '-'}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <div class="relative inline-block">
+                            <input type="text" value="${project.startDate}" 
+                                   placeholder="YYYY-MM-DD"
+                                   onchange="updateProjectDate(${project.id}, 'startDate', this.value)"
+                                   onclick="event.stopPropagation()"
+                                   onblur="validateAndFormatDate(this)"
+                                   class="date-input border border-transparent hover:border-gray-300 rounded-md pl-1 pr-6 py-1 text-xs w-28 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 hover:bg-white transition-all cursor-pointer text-center">
+                            <button onclick="event.stopPropagation(); showCalendarForInput(this.previousElementSibling)" 
+                                    class="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <div class="relative inline-block">
+                            <input type="text" value="${project.t0Date}" 
+                                   placeholder="YYYY-MM-DD"
+                                   onchange="updateProjectDate(${project.id}, 't0Date', this.value)"
+                                   onclick="event.stopPropagation()"
+                                   onblur="validateAndFormatDate(this)"
+                                   class="date-input border border-transparent hover:border-gray-300 rounded-md pl-1 pr-6 py-1 text-xs w-28 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 hover:bg-white transition-all cursor-pointer text-center ${getMilestoneColor(project.t0Risk)}">
+                            <button onclick="event.stopPropagation(); showCalendarForInput(this.previousElementSibling)" 
+                                    class="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <div class="relative inline-block">
+                            <input type="text" value="${project.ppapDate}" 
+                                   placeholder="YYYY-MM-DD"
+                                   onchange="updateProjectDate(${project.id}, 'ppapDate', this.value)"
+                                   onclick="event.stopPropagation()"
+                                   onblur="validateAndFormatDate(this)"
+                                   class="date-input border border-transparent hover:border-gray-300 rounded-md pl-1 pr-6 py-1 text-xs w-28 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 hover:bg-white transition-all cursor-pointer text-center ${getMilestoneColor(project.ppapRisk)}">
+                            <button onclick="event.stopPropagation(); showCalendarForInput(this.previousElementSibling)" 
+                                    class="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <div class="flex items-center justify-center gap-2 whitespace-nowrap">
+                            <div class="w-16 progress-bar h-2 rounded-full overflow-hidden bg-gray-200">
+                                <div class="progress-fill h-full rounded-full transition-all duration-500" style="width: ${project.progress}%"></div>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-600">${project.progress}%</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <select onclick="event.stopPropagation()" onchange="event.stopPropagation(); updateProjectField(${project.id}, 'status', this.value)"
+                                class="px-2 py-1 rounded text-xs font-medium border border-transparent hover:border-gray-200 focus:outline-none ${getStatusColor(project.status)}">
+                            <option value="未开始" ${project.status === '未开始' ? 'selected' : ''}>未开始</option>
+                            <option value="进行中" ${project.status === '进行中' ? 'selected' : ''}>进行中</option>
+                            <option value="已延期" ${project.status === '已延期' ? 'selected' : ''}>已延期</option>
+                            <option value="已完成" ${project.status === '已完成' ? 'selected' : ''}>已完成</option>
+                        </select>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="event.stopPropagation(); openIssuesForProject(${project.id})" class="inline-flex items-center justify-center w-7 h-7 text-gray-400 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors" title="问题点清单">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11h6m-6 4h4m-6 6h10a2 2 0 002-2V7l-4-4H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteProject(${project.id})" class="inline-flex items-center justify-center w-7 h-7 text-gray-400 rounded hover:bg-red-50 hover:text-red-600 transition-colors" title="删除项目">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function collectOverdueItems(projects) {
+            const items = [];
+            projects.forEach(project => {
+                const overdueRisks = [...(project.t0Risk || []), ...(project.ppapRisk || [])]
+                    .filter(risk => risk.type === 'error');
+                overdueRisks.forEach(risk => {
+                    items.push({
+                        type: '节点',
+                        projectName: project.name,
+                        projectId: project.id,
+                        taskName: risk.message,
+                        phase: '项目节点',
+                        date: risk.date,
+                        status: '延期'
+                    });
+                });
+
+                (project.tasks || []).forEach(task => {
+                    if (task.status === '已延期') {
+                        items.push({
+                            type: '任务',
+                            projectName: project.name,
+                            projectId: project.id,
+                            taskName: task.name,
+                            phase: task.phase,
+                            date: task.endDate || task.startDate || '',
+                            status: task.status
+                        });
+                    }
+                });
+            });
+            return items.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+        }
+
+        // 更新统计
+        function updateStatistics(projects) {
+            const total = projects.length;
+            const active = projects.filter(p => p.status === '进行中').length;
+            const overdueItems = collectOverdueItems(projects);
+            let todayTaskCount = 0;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            projects.forEach(project => {
+                // 统计今日任务
+                if (project.tasks) {
+                    project.tasks.forEach(task => {
+                        if (task.startDate && task.endDate) {
+                            const startDate = new Date(task.startDate);
+                            const endDate = new Date(task.endDate);
+                            startDate.setHours(0, 0, 0, 0);
+                            endDate.setHours(0, 0, 0, 0);
+                            
+                            if (today >= startDate && today <= endDate && task.status !== '已完成') {
+                                todayTaskCount++;
+                            }
+                        }
+                    });
+                }
+            });
+
+            document.getElementById('totalProjects').textContent = total;
+            document.getElementById('activeProjects').textContent = active;
+            document.getElementById('delayedAlerts').textContent = overdueItems.length;
+            document.getElementById('todayTasks').textContent = todayTaskCount;
+            
+            // 显示预警
+            displayAlerts(projects);
+        }
+
+        // 显示预警信息
+        function displayAlerts(projects) {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let alertsHTML = '';
+            
+            // 1. 延期预警
+            const overdueItems = collectOverdueItems(projects);
+            if (overdueItems.length > 0) {
+                alertsHTML += `
+                    <div class="bg-white border border-red-100 rounded-md">
+                        <button class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-red-50 transition-colors" onclick="toggleOverdueTasks()">
+                            <span class="font-semibold text-red-800">延期节点清单 (${overdueItems.length}个)</span>
+                            <span class="text-xs text-red-500">${overdueTasksCollapsed ? '展开' : '收起'}</span>
+                        </button>
+                        <div class="${overdueTasksCollapsed ? 'hidden' : ''} border-t border-red-100 p-3 space-y-2 max-h-72 overflow-y-auto">
+                            ${overdueItems.map(item => `
+                                <div class="border border-red-100 rounded-md px-3 py-2 hover:bg-red-50 transition-colors cursor-pointer" onclick="viewTasks(${item.projectId})">
+                                    <div class="grid grid-cols-[minmax(150px,1fr)_minmax(180px,1.2fr)_96px_80px] gap-3 items-center">
+                                        <div class="font-medium text-sm text-gray-800 truncate" title="${escapeHtml(item.taskName)}">${escapeHtml(item.taskName)}</div>
+                                        <div class="text-xs text-gray-600 truncate" title="${escapeHtml(item.projectName)} · ${escapeHtml(item.phase)}">${escapeHtml(item.projectName)} · ${escapeHtml(item.phase)}</div>
+                                        <div class="text-xs text-red-700 text-center">${escapeHtml(item.date || '-')}</div>
+                                        <span class="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200">${escapeHtml(item.status)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 2. 今日任务提醒
+            const todayTasks = [];
+            projects.forEach(project => {
+                if (project.tasks) {
+                    project.tasks.forEach(task => {
+                        if (task.startDate && task.endDate && task.status !== '已完成') {
+                            const startDate = new Date(task.startDate);
+                            const endDate = new Date(task.endDate);
+                            startDate.setHours(0, 0, 0, 0);
+                            endDate.setHours(0, 0, 0, 0);
+                            
+                            if (today >= startDate && today <= endDate) {
+                                todayTasks.push({
+                                    projectName: project.name,
+                                    projectId: project.id,
+                                    taskName: task.name,
+                                    phase: task.phase,
+                                    status: task.status
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (todayTasks.length > 0) {
+                alertsHTML += `
+                    <div class="bg-white border border-indigo-100 rounded-md">
+                        <button class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 transition-colors" onclick="toggleTodayTasks()">
+                            <span class="font-semibold text-gray-900">今日待办任务 (${todayTasks.length}个)</span>
+                            <span class="text-xs text-gray-500">${todayTasksCollapsed ? '展开' : '收起'}</span>
+                        </button>
+                        <div class="${todayTasksCollapsed ? 'hidden' : ''} border-t border-gray-100 p-3 space-y-2 max-h-60 overflow-y-auto">
+                            ${todayTasks.map(task => `
+                                <div class="border border-gray-100 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors cursor-pointer" onclick="viewTasks(${task.projectId})">
+                                    <div class="grid grid-cols-[minmax(160px,1fr)_minmax(180px,1.2fr)_80px] gap-3 items-center">
+                                        <div class="font-medium text-sm text-gray-800 truncate">${task.taskName}</div>
+                                        <div class="text-xs text-gray-600 truncate">${task.projectName} · ${task.phase}</div>
+                                        <span class="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium ${getTaskStatusColor(task.status)}">${task.status}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.classList.toggle('hidden', !alertsHTML);
+            container.innerHTML = alertsHTML;
+        }
+
+        function toggleTodayTasks() {
+            todayTasksCollapsed = !todayTasksCollapsed;
+            displayAlerts(visibleProjects());
+        }
+
+        function toggleOverdueTasks() {
+            overdueTasksCollapsed = !overdueTasksCollapsed;
+            displayAlerts(visibleProjects());
+        }
+
+        // 获取颜色
+        function getStatusColor(status) {
+            const colors = {
+                '进行中': 'bg-blue-100 text-blue-700',
+                '已完成': 'bg-green-100 text-green-700',
+                '已延期': 'bg-red-100 text-red-700',
+                '未开始': 'bg-amber-100 text-amber-700'
+            };
+            return colors[status] || 'bg-amber-100 text-amber-700';
+        }
+
+        function getTaskStatusColor(status) {
+            const colors = {
+                '已完成': 'bg-green-100 text-green-700 border border-green-200',
+                '进行中': 'bg-blue-100 text-blue-700 border border-blue-200',
+                '已延期': 'bg-red-100 text-red-700 border border-red-200',
+                '未开始': 'bg-amber-100 text-amber-700 border border-amber-200'
+            };
+            return colors[status] || 'bg-amber-100 text-amber-700 border border-amber-200';
+        }
+
+        function getMilestoneColor(risks = []) {
+            if (risks.some(risk => risk.type === 'error')) return 'text-red-600 font-semibold';
+            if (risks.some(risk => risk.type === 'warning')) return 'text-amber-600 font-semibold';
+            return '';
+        }
+
+        // 弹窗控制
+        function showCreateModal() {
+            populateCollectionSelect();
+            document.getElementById('createModal').classList.remove('hidden');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('createForm').reset();
+        }
+
+        // 提交创建
+        async function submitCreate() {
+            const form = document.getElementById('createForm');
+            const formData = new FormData(form);
+            
+            const data = {
+                name: formData.get('name'),
+                productQuantity: formData.get('productQuantity'),
+                processMode: formData.get('processMode'),
+                moldQuantity: formData.get('moldQuantity'),
+                collectionId: formData.get('collectionId'),
+                startDate: formData.get('startDate'),
+                t0Date: formData.get('t0Date'),
+                ppapDate: formData.get('ppapDate')
+            };
+
+            try {
+                const response = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeCreateModal();
+                    await loadWorkspaceData();
+                    showNotification(result.scheduleWarning || '项目已创建并自动生成计划', result.scheduleWarning ? 'warning' : 'success');
+                } else {
+                    alert(result.message || '创建失败');
+                }
+            } catch (error) {
+                alert('网络请求失败');
+            }
+        }
+
+        async function updateProjectField(projectId, field, newValue) {
+            try {
+                const response = await fetch(`/api/projects/${projectId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: newValue })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadWorkspaceData();
+                    const fieldNames = {
+                        'startDate': '启动时间',
+                        't0Date': 'T0试模时间',
+                        'ppapDate': 'PPAP时间',
+                        'status': '项目状态'
+                    };
+                    showNotification(`${fieldNames[field] || field}已更新`, 'success');
+                } else {
+                    showNotification(result.message || '更新失败', 'error');
+                    loadWorkspaceData();
+                }
+            } catch (error) {
+                console.error('Update error:', error);
+                showNotification('网络请求失败', 'error');
+                loadWorkspaceData();
+            }
+        }
+
+        // 直接更新项目日期节点
+        async function updateProjectDate(projectId, field, newValue) {
+            await updateProjectField(projectId, field, newValue);
+        }
+
+        // 验证并格式化日期
+        function validateAndFormatDate(input) {
+            if (!input.value || input.value.trim() === '') return;
+            
+            // 尝试解析日期
+            const dateStr = input.value.trim();
+            const date = new Date(dateStr);
+            
+            // 检查是否为有效日期
+            if (!isNaN(date.getTime())) {
+                // 格式化为 YYYY-MM-DD
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const formatted = `${year}-${month}-${day}`;
+                
+                // 如果格式不同，更新输入框
+                if (input.value !== formatted) {
+                    input.value = formatted;
+                    // 触发 onchange 事件保存
+                    input.dispatchEvent(new Event('change'));
+                }
+            } else {
+                // 无效日期，恢复原值或清空
+                alert('请输入有效的日期格式（如：2026-05-23）');
+                input.value = '';
+            }
+        }
+
+        // 显示日历选择器
+        function showCalendarForInput(input) {
+            // 创建一个临时的 date 输入框
+            const tempInput = document.createElement('input');
+            tempInput.type = 'date';
+            tempInput.value = input.value || new Date().toISOString().split('T')[0];
+            tempInput.style.position = 'absolute';
+            tempInput.style.opacity = '0';
+            tempInput.style.pointerEvents = 'none';
+            
+            document.body.appendChild(tempInput);
+            
+            // 聚焦并显示选择器
+            tempInput.focus();
+            if (tempInput.showPicker) {
+                tempInput.showPicker();
+            } else {
+                tempInput.click();
+            }
+            
+            // 监听日期选择
+            tempInput.addEventListener('change', function() {
+                if (this.value) {
+                    input.value = this.value;
+                    input.dispatchEvent(new Event('change'));
+                }
+                document.body.removeChild(tempInput);
+            });
+            
+            // 如果用户取消，也删除临时元素
+            tempInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    if (document.body.contains(tempInput)) {
+                        document.body.removeChild(tempInput);
+                    }
+                }, 100);
+            });
+        }
+
+        // 更新任务状态
+        async function updateTaskStatus(taskId, newStatus) {
+            await updateTaskField(taskId, 'status', newStatus);
+        }
+
+        // 更新任务任意字段
+        async function updateTaskField(taskId, field, newValue) {
+            const projectId = currentProjectId;
+            
+            if (!projectId) {
+                alert('无法找到项目');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: newValue })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadProjects();
+                    await viewTasks(projectId);
+                    
+                    const fieldNames = {
+                        'name': '任务名称',
+                        'description': '描述',
+                        'startDate': '开始日期',
+                        'endDate': '结束日期',
+                        'status': '状态',
+                        'moldCode': '模具代码',
+                        'materialCode': '材料代码',
+                        'materialGrade': '材料牌号',
+                        'materialWidth': '料宽',
+                        'materialPitch': '布距',
+                        'materialThickness': '料厚',
+                        'materialDensity': '材料密度',
+                        'annualQuantity': '年量'
+                    };
+                    showNotification(`${fieldNames[field] || '任务'}已更新`, 'success');
+                } else {
+                    alert(result.message || '更新失败');
+                }
+            } catch (error) {
+                alert('网络请求失败');
+            }
+        }
+
+        function toggleAddTaskForm(show) {
+            const form = document.getElementById('addTaskForm');
+            const shouldShow = typeof show === 'boolean' ? show : form.classList.contains('hidden');
+            form.classList.toggle('hidden', !shouldShow);
+            if (shouldShow) {
+                if (!document.getElementById('newTaskStartDate').value && currentProjectData) {
+                    document.getElementById('newTaskStartDate').value = currentProjectData.startDate || '';
+                    document.getElementById('newTaskEndDate').value = currentProjectData.startDate || '';
+                }
+                refreshParentTaskOptions();
+                document.getElementById('newTaskName').focus();
+            }
+        }
+
+        function refreshParentTaskOptions(selectedParent = '') {
+            const level = document.getElementById('newTaskLevel').value;
+            const parentWrap = document.getElementById('newTaskParentWrap');
+            const parentSelect = document.getElementById('newTaskParent');
+            parentWrap.classList.toggle('hidden', level !== 'child');
+            parentSelect.required = level === 'child';
+            if (level === 'child') {
+                const phase = document.getElementById('newTaskPhase').value;
+                const eligibleTasks = currentTasksData.filter(task =>
+                    task.phase === phase && (!task.parentTask || task.isParent)
+                );
+                parentSelect.innerHTML = eligibleTasks.map(task =>
+                    `<option value="${escapeHtml(task.name)}">${escapeHtml(task.name)}</option>`
+                ).join('');
+                if (!eligibleTasks.length) {
+                    parentSelect.innerHTML = '<option value="">该阶段暂无可选父任务</option>';
+                } else if (selectedParent) {
+                    parentSelect.value = selectedParent;
+                }
+            }
+            refreshInsertPositionOptions();
+            handleNewTaskParentChange();
+        }
+
+        function handleNewTaskParentChange() {
+            const level = document.getElementById('newTaskLevel').value;
+            const parentTask = level === 'child' ? document.getElementById('newTaskParent').value : '';
+            const isMaterialTask = parentTask === '原材料采购';
+            const nameInput = document.getElementById('newTaskName');
+            const startInput = document.getElementById('newTaskStartDate');
+            const endInput = document.getElementById('newTaskEndDate');
+            if (isMaterialTask && !nameInput.value.trim()) {
+                const count = currentTasksData.filter(task => task.parentTask === '原材料采购' && task.generatedMaterialTask).length + 1;
+                nameInput.value = `买材料数量 - 产品${count}`;
+            }
+            startInput.required = !isMaterialTask;
+            endInput.required = !isMaterialTask;
+        }
+
+        function taskSortValue(task) {
+            return Number.isFinite(Number(task.displayOrder)) ? Number(task.displayOrder) : getTaskOrder(task);
+        }
+
+        function refreshInsertPositionOptions(selectedTaskId = '__end__') {
+            const phase = document.getElementById('newTaskPhase').value;
+            const level = document.getElementById('newTaskLevel').value;
+            const parentTask = level === 'child' ? document.getElementById('newTaskParent').value : '';
+            const positionSelect = document.getElementById('newTaskInsertAfter');
+            const siblings = currentTasksData
+                .filter(task => task.phase === phase && (task.parentTask || '') === parentTask)
+                .sort((a, b) => taskSortValue(a) - taskSortValue(b));
+            positionSelect.innerHTML = `
+                <option value="">放在最前面</option>
+                ${siblings.map(task => `<option value="${task.id}">放在“${escapeHtml(task.name)}”之后</option>`).join('')}
+            `;
+            if (selectedTaskId === '__end__' && siblings.length) {
+                positionSelect.value = siblings[siblings.length - 1].id;
+            } else {
+                positionSelect.value = selectedTaskId;
+            }
+        }
+
+        function insertAfterTask(taskId) {
+            const task = currentTasksData.find(item => item.id === taskId);
+            if (!task) return;
+            const form = document.getElementById('addTaskForm');
+            form.reset();
+            toggleAddTaskForm(true);
+            document.getElementById('newTaskPhase').value = task.phase;
+            document.getElementById('newTaskLevel').value = task.parentTask ? 'child' : (task.isParent ? 'parent' : 'standalone');
+            document.getElementById('newTaskStartDate').value = task.endDate || task.startDate || '';
+            document.getElementById('newTaskEndDate').value = task.endDate || task.startDate || '';
+            refreshParentTaskOptions(task.parentTask || '');
+            refreshInsertPositionOptions(task.id);
+            document.getElementById('newTaskName').focus();
+        }
+
+        async function addMaterialPurchaseTask(parentTaskId) {
+            const sourceTask = currentTasksData.find(item => item.id === parentTaskId);
+            const parent = sourceTask && sourceTask.name === '原材料采购'
+                ? sourceTask
+                : currentTasksData.find(item => item.name === (sourceTask && sourceTask.parentTask));
+            if (!parent || !currentProjectId) return;
+
+            const materialTasks = currentTasksData
+                .filter(task => task.parentTask === '原材料采购' && task.generatedMaterialTask)
+                .sort((a, b) => taskSortValue(a) - taskSortValue(b));
+            const childTasks = currentTasksData
+                .filter(task => task.parentTask === '原材料采购')
+                .sort((a, b) => taskSortValue(a) - taskSortValue(b));
+            const nextIndex = materialTasks.length + 1;
+            const insertAfterTaskId = materialTasks.length
+                ? materialTasks[materialTasks.length - 1].id
+                : (childTasks.length ? childTasks[childTasks.length - 1].id : '__end__');
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: `买材料数量 - 产品${nextIndex}`,
+                        phase: parent.phase,
+                        startDate: '',
+                        endDate: '',
+                        description: '',
+                        parentTask: '原材料采购',
+                        isParent: false,
+                        insertAfterTaskId,
+                        generatedMaterialTask: true
+                    })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '新增材料行失败', 'error');
+                    return;
+                }
+                expandedTaskIds.add(parentTaskId);
+                await loadProjects();
+                await viewTasks(currentProjectId);
+                showNotification('材料购买行已新增', 'success');
+            } catch (error) {
+                showNotification('网络请求失败', 'error');
+            }
+        }
+
+        async function submitAddTask(event) {
+            event.preventDefault();
+            if (!currentProjectId) return;
+
+            const level = document.getElementById('newTaskLevel').value;
+            const parentTask = level === 'child' ? document.getElementById('newTaskParent').value : '';
+            if (level === 'child' && !parentTask) {
+                showNotification('请先选择父任务', 'error');
+                return;
+            }
+            const data = {
+                name: document.getElementById('newTaskName').value.trim(),
+                phase: document.getElementById('newTaskPhase').value,
+                startDate: document.getElementById('newTaskStartDate').value,
+                endDate: document.getElementById('newTaskEndDate').value,
+                description: document.getElementById('newTaskDescription').value.trim(),
+                parentTask,
+                isParent: level === 'parent',
+                insertAfterTaskId: document.getElementById('newTaskInsertAfter').value,
+                generatedMaterialTask: parentTask === '原材料采购' && document.getElementById('newTaskName').value.trim().startsWith('买材料数量')
+            };
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '新增失败', 'error');
+                    return;
+                }
+                if (level === 'child') {
+                    const parent = currentTasksData.find(task =>
+                        task.phase === data.phase && task.name === parentTask
+                    );
+                    if (parent) expandedTaskIds.add(parent.id);
+                }
+                document.getElementById('addTaskForm').reset();
+                toggleAddTaskForm(false);
+                await loadProjects();
+                await viewTasks(currentProjectId);
+                showNotification('任务已新增', 'success');
+            } catch (error) {
+                showNotification('网络请求失败', 'error');
+            }
+        }
+
+        async function deleteTask(taskId) {
+            const task = currentTasksData.find(item => item.id === taskId);
+            if (!task || !currentProjectId) return;
+            const hasChildren = currentTasksData.some(item =>
+                item.phase === task.phase && item.parentTask === task.name
+            );
+            const prompt = hasChildren
+                ? `确定删除“${task.name}”及其下级任务吗？`
+                : `确定删除任务“${task.name}”吗？`;
+            if (!confirm(prompt)) return;
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '删除失败', 'error');
+                    return;
+                }
+                expandedTaskIds.delete(taskId);
+                await loadProjects();
+                await viewTasks(currentProjectId);
+                showNotification(result.removedCount > 1 ? `已删除 ${result.removedCount} 个任务` : '任务已删除', 'success');
+            } catch (error) {
+                showNotification('网络请求失败', 'error');
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500',
+                warning: 'bg-amber-500'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 fade-in`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        // 关闭任务弹窗
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+            document.getElementById('addTaskForm').classList.add('hidden');
+            currentProjectId = null;
+            currentProjectData = null;
+        }
+
+        // 删除项目
+        async function deleteProject(id) {
+            const project = projectsData.find(item => item.id === id);
+            if (!project) {
+                await loadWorkspaceData();
+                showNotification('项目已不存在，列表已刷新', 'info');
+                return;
+            }
+            if (deletingProjectIds.has(id)) return;
+            if (!confirm(`确定删除项目“${project.name}”吗？此操作不可撤销。`)) return;
+            deletingProjectIds.add(id);
+
+            try {
+                const response = await fetch(`/api/projects/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    await loadWorkspaceData();
+                    showNotification('项目已删除', 'success');
+                } else {
+                    await loadWorkspaceData();
+                    if (response.status === 404) {
+                        showNotification('项目已不存在，列表已刷新', 'info');
+                    } else {
+                        showNotification(result.message || '删除失败', 'error');
+                    }
+                }
+            } catch (error) {
+                showNotification('网络请求失败', 'error');
+            } finally {
+                deletingProjectIds.delete(id);
+            }
+        }
+
+        // 搜索过滤
+        function filterProjects() {
+            applyProjectFilters();
+        }
+
+        // 查看计划详情
+        async function viewTasks(projectId) {
+            try {
+                const response = await fetch(`/api/projects/${projectId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const project = result.data;
+                    currentProjectId = project.id;
+                    currentProjectData = project;
+                    document.getElementById('taskModalTitle').textContent = `${project.name} - 计划列表`;
+                    document.getElementById('taskModalSubtitle').textContent = `工艺: ${project.processMode || '后镀'} | 产品: ${project.productQuantity || '-'} | 模具: ${project.moldQuantity || '-'} | 启动: ${project.startDate} | T0: ${project.t0Date} | PPAP: ${project.ppapDate}`;
+                    
+                    renderTasks(project.tasks || []);
+                    document.getElementById('taskModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('加载计划失败');
+            }
+        }
+
+        async function regenerateT0Plan() {
+            if (!currentProjectId || !currentProjectData) return;
+            const process = currentProjectData.processMode || '后镀';
+            const moldCount = currentProjectData.moldQuantity || '-';
+            const message = `将按“${process}”工艺和 ${moldCount} 套模具重新生成 T0 试模任务。\n\n原来 T0 试模下的任务会被替换，T1 与后续交样日期会随试模完成时间同步调整。确定继续吗？`;
+            if (!confirm(message)) return;
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/t0-plan/regenerate`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '重新生成失败', 'error');
+                    return;
+                }
+                currentProjectData = result.data;
+                const t0Parent = (currentProjectData.tasks || []).find(task =>
+                    task.phase === '第三阶段：T0/T1试模' && task.name === 'T0试模'
+                );
+                if (t0Parent) expandedTaskIds.add(t0Parent.id);
+                renderTasks(currentProjectData.tasks || []);
+                await loadWorkspaceData();
+                showNotification(`已按 ${moldCount} 套模具生成试模计划`, 'success');
+            } catch (error) {
+                showNotification('重新生成失败，请检查服务是否运行', 'error');
+            }
+        }
+
+        async function regenerateProjectSchedule() {
+            if (!currentProjectId || !currentProjectData) return;
+            const message = `将按当前节点重排“${currentProjectData.name}”的标准计划：\n\n设计 5 天（二冲 7 天）、模具加工 12 天、组装 4 天、电镀 7 天、每套试模 1 天。\n\n标准任务日期和 T0 试模明细会被更新，确定继续吗？`;
+            if (!confirm(message)) return;
+
+            try {
+                const response = await fetch(`/api/projects/${currentProjectId}/schedule/regenerate`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showNotification(result.message || '自动排期失败', 'error');
+                    return;
+                }
+                currentProjectData = result.data;
+                renderTasks(currentProjectData.tasks || []);
+                await loadWorkspaceData();
+                showNotification(result.scheduleWarning || '已按标准周期重新排计划', result.scheduleWarning ? 'warning' : 'success');
+            } catch (error) {
+                showNotification('自动排期失败，请检查服务是否运行', 'error');
+            }
+        }
+
+        // 渲染任务列表
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function getTaskOrder(task) {
+            if (task.name && task.name.startsWith('买材料数量 - 产品')) {
+                return 315 + Number(task.materialIndex || 0);
+            }
+            const order = {
+                '项目启动会议': 10,
+                '获得客户图纸和标准': 20,
+                '模具的设计与制作': 100,
+                '料带图确认': 110,
+                '模具图纸外发': 120,
+                '模具加工': 130,
+                '模具组装': 140,
+                '工装检具的设计制作': 200,
+                '检具设计': 210,
+                '检具外发': 220,
+                '生产工序图': 230,
+                '料带图': 231,
+                '材料图': 232,
+                '电镀图': 233,
+                '产品图': 234,
+                '初始BOM': 240,
+                '原材料采购': 300,
+                '原材料请购': 310,
+                '买材料数量': 315,
+                '原材料到货': 320,
+                '原材料送电镀': 330,
+                '电镀材料回厂': 340,
+                '初始PPAP': 400,
+                'T0试模': 500,
+                '预镀材料T0试模': 510,
+                'T0试模执行': 510,
+                '一冲T0试模': 510,
+                '试模件后镀': 520,
+                '料带电镀': 520,
+                '料带电镀回厂': 520,
+                '二冲试模': 530,
+                '尺寸报告': task.parentTask === 'T1试模' ? 620 : 540,
+                '问题点清单': 550,
+                'T1试模': 600,
+                '问题清单更新': 630,
+                '正式BOM更新': 700,
+                '包装方案': 710,
+                'OST交样': 720,
+                '正式PPAP资料提交': 800,
+                '量产转移': 900
+            };
+            const numberedTasks = [
+                ['预镀材料T0试模 - ', 510],
+                ['T0试模执行 - ', 510],
+                ['一冲T0试模 - ', 510],
+                ['二冲T0试模 - ', 530]
+            ];
+            for (const [prefix, baseOrder] of numberedTasks) {
+                if (task.name.startsWith(prefix)) {
+                    return baseOrder + Number(task.moldNumber || 0);
+                }
+            }
+            return order[task.name] || 999;
+        }
+
+        function formatMaterialWeight(value) {
+            const number = Number(value || 0);
+            return Number.isFinite(number) ? number.toFixed(3) : '0.000';
+        }
+
+        function renderTasks(tasks) {
+            const container = document.getElementById('taskList');
+            currentTasksData = tasks;
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">暂无计划</div>';
+                return;
+            }
+
+            const tasksByPhase = {};
+            tasks.forEach(task => {
+                if (!tasksByPhase[task.phase]) tasksByPhase[task.phase] = [];
+                tasksByPhase[task.phase].push(task);
+            });
+
+            let html = '';
+            let phaseIndex = 0;
+            for (const [phase, rawPhaseTasks] of Object.entries(tasksByPhase)) {
+                const phaseTasks = [...rawPhaseTasks].sort((a, b) => taskSortValue(a) - taskSortValue(b));
+                const phaseId = `phase-${phaseIndex++}`;
+                const childrenByParent = {};
+                phaseTasks.forEach(task => {
+                    if (task.parentTask) {
+                        if (!childrenByParent[task.parentTask]) childrenByParent[task.parentTask] = [];
+                        childrenByParent[task.parentTask].push(task);
+                    }
+                });
+                Object.keys(childrenByParent).forEach(parent => {
+                    childrenByParent[parent].sort((a, b) => taskSortValue(a) - taskSortValue(b));
+                });
+                const rootTasks = phaseTasks.filter(task => !task.parentTask);
+
+                html += `
+                    <div class="mb-5 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 cursor-pointer" onclick="togglePhase('${phaseId}')">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-semibold text-gray-900 text-sm">${escapeHtml(phase)}</h4>
+                                <span class="text-xs text-gray-500">${phaseTasks.length}项</span>
+                            </div>
+                            <svg id="phase-arrow-${phaseId}" class="w-4 h-4 text-gray-500 transform transition-transform duration-200 rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                        <div id="phase-content-${phaseId}" class="overflow-x-auto">
+                            <div class="min-w-[1380px]">
+                                <div class="grid grid-cols-[minmax(230px,1fr)_124px_124px_112px_620px_128px] gap-3 px-4 py-2 bg-white border-b border-gray-100 text-xs font-semibold text-gray-500">
+                                    <div>任务名</div>
+                                    <div>开始时间</div>
+                                    <div>结束时间</div>
+                                    <div>状态</div>
+                                    <div>备注 / 材料用量 / 代码</div>
+                                    <div class="text-center">操作</div>
+                                </div>
+                                ${rootTasks.map(task => renderTaskRow(task, childrenByParent, 0)).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function renderTaskRow(task, childrenByParent, level = 0) {
+            const children = childrenByParent[task.name] || [];
+            const hasChildren = children.length > 0;
+            const isExpanded = expandedTaskIds.has(task.id);
+            const indent = level * 18;
+            const materialPurchase = task.generatedMaterialTask || (task.name && task.name.startsWith('买材料数量 - 产品'));
+            const isMaterialParent = task.name === '原材料采购';
+            const bomFields = (task.name && task.name.includes('BOM')) || 'moldCode' in task || 'materialCode' in task;
+            if (materialPurchase) {
+                return `
+                    <div class="grid grid-cols-[minmax(230px,1fr)_minmax(840px,4fr)_128px] gap-3 items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
+                        <div class="flex items-center gap-2 min-w-0" style="padding-left:${indent}px">
+                            <span class="inline-block w-5"></span>
+                            <input type="text" value="${escapeHtml(task.name)}"
+                                   onchange="updateTaskField('${task.id}', 'name', this.value)"
+                                   class="min-w-0 flex-1 border border-transparent hover:border-gray-300 rounded px-2 py-1 text-sm text-gray-700 focus:outline-none focus:border-blue-500">
+                            <button type="button" onclick="addMaterialPurchaseTask('${task.id}')" title="继续添加材料购买行"
+                                    class="shrink-0 inline-flex items-center justify-center h-7 px-2 rounded text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors">
+                                添加
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-2 items-end">
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">材料牌号</span>
+                                <input type="text" value="${escapeHtml(task.materialGrade || '')}"
+                                       onchange="updateTaskField('${task.id}', 'materialGrade', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                                       placeholder="如 SUS304">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">料宽(mm)</span>
+                                <input type="number" step="0.001" value="${escapeHtml(task.materialWidth || '')}"
+                                       onchange="updateTaskField('${task.id}', 'materialWidth', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">布距(mm)</span>
+                                <input type="number" step="0.001" value="${escapeHtml(task.materialPitch || '')}"
+                                       onchange="updateTaskField('${task.id}', 'materialPitch', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">料厚(mm)</span>
+                                <input type="number" step="0.001" value="${escapeHtml(task.materialThickness || '')}"
+                                       onchange="updateTaskField('${task.id}', 'materialThickness', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">密度(g/cm³)</span>
+                                <input type="number" step="0.001" value="${escapeHtml(task.materialDensity || '')}"
+                                       onchange="updateTaskField('${task.id}', 'materialDensity', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-[11px] text-gray-500">年量</span>
+                                <input type="number" step="1" value="${escapeHtml(task.annualQuantity || '')}"
+                                       onchange="updateTaskField('${task.id}', 'annualQuantity', this.value)"
+                                       class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500">
+                            </label>
+                            <div class="rounded bg-emerald-50 border border-emerald-100 px-2 py-1 text-xs text-emerald-700">
+                                <div class="text-[11px] text-emerald-600">3个月采购</div>
+                                <div class="font-semibold">${formatMaterialWeight(task.materialWeight)} kg</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="button" onclick="addMaterialPurchaseTask('${task.id}')" title="继续添加材料购买行"
+                                    class="inline-flex items-center justify-center h-8 px-2 rounded text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors">
+                                添加
+                            </button>
+                            <button type="button" onclick="deleteTask('${task.id}')" title="删除任务"
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            const noteCell = bomFields ? `
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="block">
+                        <span class="mb-1 block text-[11px] text-gray-500">模具代码</span>
+                        <textarea rows="2"
+                                  onchange="updateTaskField('${task.id}', 'moldCode', this.value)"
+                                  class="w-full resize-y border border-gray-300 rounded px-2 py-1 text-xs leading-5 focus:outline-none focus:border-blue-500"
+                                  placeholder="一行一个代码">${escapeHtml(task.moldCode || '')}</textarea>
+                    </label>
+                    <label class="block">
+                        <span class="mb-1 block text-[11px] text-gray-500">材料代码</span>
+                        <textarea rows="2"
+                                  onchange="updateTaskField('${task.id}', 'materialCode', this.value)"
+                                  class="w-full resize-y border border-gray-300 rounded px-2 py-1 text-xs leading-5 focus:outline-none focus:border-blue-500"
+                                  placeholder="一行一个代码">${escapeHtml(task.materialCode || '')}</textarea>
+                    </label>
+                </div>
+            ` : `
+                <input type="text" value="${escapeHtml(task.description || '')}"
+                       onchange="updateTaskField('${task.id}', 'description', this.value)"
+                       class="w-full border border-transparent hover:border-gray-300 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-500"
+                       placeholder="备注">
+            `;
+
+            return `
+                <div class="grid grid-cols-[minmax(230px,1fr)_124px_124px_112px_620px_128px] gap-3 items-center px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
+                    <div class="flex items-center gap-2 min-w-0" style="padding-left:${indent}px">
+                        ${hasChildren ? `
+                            <button type="button"
+                                    onclick="toggleTaskChildren('${task.id}')"
+                                    class="inline-flex items-center justify-center w-5 h-5 rounded text-gray-500 hover:bg-gray-200 hover:text-gray-900">
+                                ${isExpanded ? '▾' : '▸'}
+                            </button>
+                        ` : '<span class="inline-block w-5"></span>'}
+                        <input type="text" value="${escapeHtml(task.name)}"
+                               onchange="updateTaskField('${task.id}', 'name', this.value)"
+                               class="min-w-0 flex-1 border border-transparent hover:border-gray-300 rounded px-2 py-1 text-sm ${hasChildren || task.isParent ? 'font-semibold text-gray-900' : 'text-gray-700'} focus:outline-none focus:border-blue-500">
+                        ${isMaterialParent ? `
+                            <button type="button" onclick="addMaterialPurchaseTask('${task.id}')" title="添加材料购买行"
+                                    class="shrink-0 inline-flex items-center justify-center h-7 px-2 rounded text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors">
+                                添加材料
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="relative">
+                        <input type="text" value="${escapeHtml(task.startDate || '')}"
+                               placeholder="YYYY-MM-DD"
+                               onchange="updateTaskField('${task.id}', 'startDate', this.value)"
+                               onblur="validateAndFormatDate(this)"
+                               class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 text-center">
+                    </div>
+                    <div class="relative">
+                        <input type="text" value="${escapeHtml(task.endDate || '')}"
+                               placeholder="YYYY-MM-DD"
+                               onchange="updateTaskField('${task.id}', 'endDate', this.value)"
+                               onblur="validateAndFormatDate(this)"
+                               class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 text-center">
+                    </div>
+                    <select onchange="updateTaskStatus('${task.id}', this.value)"
+                            class="rounded px-2 py-1 text-xs font-medium focus:outline-none focus:border-blue-500 ${getTaskStatusColor(task.status)}">
+                        <option value="未开始" ${task.status === '未开始' ? 'selected' : ''}>未开始</option>
+                        <option value="进行中" ${task.status === '进行中' ? 'selected' : ''}>进行中</option>
+                        <option value="已延期" ${task.status === '已延期' ? 'selected' : ''}>已延期</option>
+                        <option value="已完成" ${task.status === '已完成' ? 'selected' : ''}>已完成</option>
+                    </select>
+                    <div>${noteCell}</div>
+                    <div class="flex items-center justify-center gap-1">
+                        ${isMaterialParent ? `
+                            <button type="button" onclick="addMaterialPurchaseTask('${task.id}')" title="添加材料购买行"
+                                    class="inline-flex items-center justify-center h-8 px-2 rounded text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 transition-colors">
+                                材料
+                            </button>
+                        ` : ''}
+                        <button type="button" onclick="insertAfterTask('${task.id}')" title="在此任务后插入"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m7-7H5"></path>
+                            </svg>
+                        </button>
+                        <button type="button" onclick="deleteTask('${task.id}')" title="删除任务"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                ${hasChildren && isExpanded ? children.map(child => renderTaskRow(child, childrenByParent, level + 1)).join('') : ''}
+            `;
+        }
+
+        // 切换子任务显示/隐藏
+        function toggleTaskChildren(parentId) {
+            if (expandedTaskIds.has(parentId)) {
+                expandedTaskIds.delete(parentId);
+            } else {
+                expandedTaskIds.add(parentId);
+            }
+            renderTasks(currentTasksData);
+        }
+        
+        // 切换整个阶段的显示/隐藏
+        function togglePhase(phaseId) {
+            const phaseContent = document.getElementById(`phase-content-${phaseId}`);
+            const phaseArrow = document.getElementById(`phase-arrow-${phaseId}`);
+            
+            if (phaseContent && phaseArrow) {
+                if (phaseContent.classList.contains('hidden')) {
+                    // 展开阶段
+                    phaseContent.classList.remove('hidden');
+                    phaseArrow.classList.add('rotate-180');
+                } else {
+                    // 收起阶段
+                    phaseContent.classList.add('hidden');
+                    phaseArrow.classList.remove('rotate-180');
+                }
+            }
+        }
+
+        // 渲染子任务
+        function renderChildTask(task) {
+
+
+            return `
+                <div class="bg-white border border-gray-200 rounded-md p-3 hover:border-gray-300 transition-all duration-150 group ml-5 relative">
+                    <!-- 连接线 -->
+                    <div class="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-5 w-5 h-px bg-gray-300"></div>
+                    
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1 mr-4">
+                            <input type="text" value="${task.name}" 
+                                   onchange="updateTaskField('${task.id}', 'name', this.value)"
+                                   class="w-full font-medium text-gray-900 text-sm border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent pb-1 transition-colors"
+                                   title="点击编辑任务名称">
+                            <input type="text" value="${task.description || ''}" 
+                                   onchange="updateTaskField('${task.id}', 'description', this.value)"
+                                   class="w-full text-xs text-gray-600 mt-1 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent pb-1 transition-colors" 
+                                   placeholder="添加任务描述">
+                        </div>
+                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getTaskStatusColor(task.status)}">${task.status}</span>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center space-x-2 bg-gray-50 px-2 py-1.5 rounded-md">
+                                <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-600">开始:</span>
+                                <div class="relative">
+                                    <input type="text" value="${task.startDate}" 
+                                           placeholder="YYYY-MM-DD"
+                                           onchange="updateTaskField('${task.id}', 'startDate', this.value)"
+                                           onblur="validateAndFormatDate(this)"
+                                           class="border border-gray-300 rounded px-1.5 py-0.5 text-xs w-28 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100 hover:border-gray-400 transition-all cursor-pointer bg-white text-center">
+                                    <button onclick="showCalendarForInput(this.previousElementSibling)" 
+                                            class="absolute right-0.5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2 bg-gray-50 px-2 py-1.5 rounded-md">
+                                <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="text-xs text-gray-600">结束:</span>
+                                <div class="relative">
+                                    <input type="text" value="${task.endDate}" 
+                                           placeholder="YYYY-MM-DD"
+                                           onchange="updateTaskField('${task.id}', 'endDate', this.value)"
+                                           onblur="validateAndFormatDate(this)"
+                                           class="border border-gray-300 rounded px-1.5 py-0.5 text-xs w-28 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-100 hover:border-gray-400 transition-all cursor-pointer bg-white text-center">
+                                    <button onclick="showCalendarForInput(this.previousElementSibling)" 
+                                            class="absolute right-0.5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <select onchange="updateTaskStatus('${task.id}', this.value)" 
+                                class="rounded-md px-3 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 hover:border-gray-400 transition-all cursor-pointer ${getTaskStatusColor(task.status)}">
+                            <option value="未开始" ${task.status === '未开始' ? 'selected' : ''}>未开始</option>
+                            <option value="进行中" ${task.status === '进行中' ? 'selected' : ''}>进行中</option>
+                            <option value="已延期" ${task.status === '已延期' ? 'selected' : ''}>已延期</option>
+                            <option value="已完成" ${task.status === '已完成' ? 'selected' : ''}>已完成</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== 日历功能 ==========
+        
+        // 渲染日历
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // 更新月份显示
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', 
+                               '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            document.getElementById('currentMonthDisplay').textContent = `${year}年 ${monthNames[month]}`;
+            
+            // 获取当月第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            // 获取第一天是星期几（0=周日，1=周一...）
+            const startDayOfWeek = firstDay.getDay();
+            
+            // 获取上个月的最后几天
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            
+            // 收集所有计划任务
+            const allTasks = [];
+            visibleProjects().forEach(project => {
+                if (project.tasks) {
+                    project.tasks.forEach(task => {
+                        allTasks.push({
+                            ...task,
+                            projectName: project.name,
+                            projectId: project.id
+                        });
+                    });
+                }
+            });
+            
+            // 生成日历网格
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            let dayCounter = 1;
+            let nextMonthDay = 1;
+            
+            // 总共需要显示的行数（最多6行）
+            const totalCells = 42; // 6行 x 7列
+            
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'min-h-[100px] bg-white border border-gray-200 rounded-md p-2 transition-all hover:border-gray-300';
+                
+                let date;
+                let isCurrentMonth = false;
+                
+                if (i < startDayOfWeek) {
+                    // 上个月的日期
+                    const day = prevMonthLastDay - startDayOfWeek + i + 1;
+                    date = new Date(year, month - 1, day);
+                    cell.classList.add('bg-gray-50', 'text-gray-400');
+                } else if (dayCounter <= lastDay.getDate()) {
+                    // 当前月的日期
+                    date = new Date(year, month, dayCounter);
+                    isCurrentMonth = true;
+                    dayCounter++;
+                    
+                    // 标记今天
+                    const today = new Date();
+                    if (date.toDateString() === today.toDateString()) {
+                        cell.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
+                    }
+                } else {
+                    // 下个月的日期
+                    date = new Date(year, month + 1, nextMonthDay);
+                    nextMonthDay++;
+                    cell.classList.add('bg-gray-50', 'text-gray-400');
+                }
+                
+                // 格式化日期字符串 YYYY-MM-DD
+                const dateStr = formatDate(date);
+                
+                // 查找当天的任务
+                const dayTasks = allTasks.filter(task => {
+                    const taskStart = new Date(task.startDate);
+                    const taskEnd = new Date(task.endDate);
+                    return date >= taskStart && date <= taskEnd;
+                });
+                
+                // 单元格内容
+                cell.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold ${isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}">${date.getDate()}</span>
+                        ${dayTasks.length > 0 ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">${dayTasks.length}</span>` : ''}
+                    </div>
+                    <div class="space-y-1 max-h-[70px] overflow-y-auto">
+                        ${dayTasks.map(task => `
+                            <div class="text-xs p-1.5 rounded cursor-pointer hover:bg-gray-100 transition-colors ${getTaskPhaseColor(task.phase)}" 
+                                 onclick="viewProjectPlan(${task.projectId})"
+                                 title="${task.projectName} - ${task.name}">
+                                <div class="font-medium truncate">${task.name}</div>
+                                <div class="text-xs opacity-75 truncate">${task.projectName}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                grid.appendChild(cell);
+            }
+        }
+        
+        // 获取阶段颜色
+        function getTaskPhaseColor(phase) {
+            const colors = {
+                '第一阶段：立项': 'bg-gray-100 text-gray-700',
+                '第二阶段：设计与制作': 'bg-indigo-50 text-indigo-700'
+            };
+            return colors[phase] || 'bg-gray-100 text-gray-800';
+        }
+        
+        // 格式化日期为 YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 切换月份
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        // 回到今天
+        function goToToday() {
+            currentCalendarDate = new Date();
+            renderCalendar();
+        }
+        
+        // 查看项目计划
+        function viewProjectPlan(projectId) {
+            viewTasks(projectId);
+        }
+
+        // 初始化
+        async function initializeWorkspace() {
+            await loadWorkspaceData();
+            const requestedView = location.hash.replace('#', '');
+            if (['list', 'calendar', 'issues'].includes(requestedView)) {
+                switchView(requestedView);
+            }
+        }
+
+        window.addEventListener('hashchange', () => {
+            const requestedView = location.hash.replace('#', '');
+            if (['list', 'calendar', 'issues'].includes(requestedView) && requestedView !== activeView) {
+                switchView(requestedView);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initializeWorkspace);
+    </script>
+</body>
+</html>

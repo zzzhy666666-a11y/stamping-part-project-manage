@@ -1,0 +1,14 @@
+# Local application data and uploaded files
+projects.json
+uploads/
+backups/
+
+# Python runtime artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local editor and environment configuration
+.vscode/
+.env

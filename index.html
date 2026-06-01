@@ -1044,10 +1044,13 @@
             }
             editingIssueId = issueId;
             const issue = issuesData.find(item => item.id === issueId);
-            editingIssueProjectId = (issue && issue.projectId) || Number(preferredProjectId || document.getElementById('issueProjectFilter').value || projectsData[0].id);
+            editingIssueProjectId = issue ? issue.projectId : null;
+            const initialProjectId = issue
+                ? issue.projectId
+                : Number(preferredProjectId || document.getElementById('issueProjectFilter').value || '');
             document.getElementById('issueModalTitle').textContent = issue ? '编辑问题' : '新增问题';
             const projectSelect = document.getElementById('issueProjectSelect');
-            projectSelect.value = String(editingIssueProjectId);
+            projectSelect.value = initialProjectId ? String(initialProjectId) : '';
             projectSelect.disabled = Boolean(issue);
             document.getElementById('issueCustomerName').value = issue ? issue.customerName || '' : '';
             document.getElementById('issueDescription').value = issue ? issue.description || '' : '';
@@ -1072,7 +1075,13 @@
 
         async function submitIssue(event) {
             event.preventDefault();
-            const projectId = editingIssueProjectId || Number(document.getElementById('issueProjectSelect').value);
+            const projectId = editingIssueId
+                ? editingIssueProjectId
+                : Number(document.getElementById('issueProjectSelect').value);
+            if (!projectId) {
+                showNotification('请先选择问题点所属项目', 'error');
+                return;
+            }
             const payload = {
                 customerName: document.getElementById('issueCustomerName').value.trim(),
                 description: document.getElementById('issueDescription').value.trim(),
